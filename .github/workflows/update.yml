@@ -17,6 +17,8 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    env:
+      REQUESTED_VERSION: ${{ github.event.inputs.version || '' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -35,6 +37,11 @@ jobs:
       - name: Check for update
         id: check
         run: |
+          if [ -n "$REQUESTED_VERSION" ]; then
+            echo "update_needed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           set +e
           ./scripts/update.sh --check
           status=$?
@@ -51,8 +58,8 @@ jobs:
       - name: Apply update
         if: steps.check.outputs.update_needed == 'true'
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            ./scripts/update.sh --version "${{ github.event.inputs.version }}"
+          if [ -n "$REQUESTED_VERSION" ]; then
+            ./scripts/update.sh --version "$REQUESTED_VERSION"
           else
             ./scripts/update.sh
           fi
@@ -76,12 +83,20 @@ jobs:
           body: |
             Automated update for T3 Code.
 
-            - Updated packaged version to `${{ steps.version.outputs.value }}`
-            - Regenerated `npm/package.json` and `npm/package-lock.json`
-            - Revalidated `nix flake check` and `nix build .#t3`
+            Updated artifacts:
+            - Desktop AppImage in `package.nix`
+            - Optional CLI package in `package-cli.nix`
+            - `npm/package.json`
+            - `npm/package-lock.json`
+
+            Validation:
+            - `nix flake check`
+            - `nix build .#t3code`
+            - `nix build .#t3code-cli`
 
       - name: Summarize
         if: always()
         run: |
           echo "## Update run" >> "$GITHUB_STEP_SUMMARY"
+          echo "- requested version: ${REQUESTED_VERSION:-latest}" >> "$GITHUB_STEP_SUMMARY"
           echo "- update needed: ${{ steps.check.outputs.update_needed || 'false' }}" >> "$GITHUB_STEP_SUMMARY"

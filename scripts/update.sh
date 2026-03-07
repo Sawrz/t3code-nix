@@ -26,16 +26,39 @@ ensure_repo_root() {
   cd "$ROOT_DIR"
   [ -f flake.nix ] || fail "run from repository root"
   [ -f package.nix ] || fail "run from repository root"
-  mkdir -p "$TMP_DIR"
-  mkdir -p "$XDG_CACHE_HOME"
+  [ -f package-cli.nix ] || fail "run from repository root"
+  mkdir -p "$TMP_DIR" "$XDG_CACHE_HOME"
 }
 
-current_version() {
+current_desktop_version() {
   sed -n 's/.*version = "\([^"]*\)".*/\1/p' package.nix | head -1
 }
 
-latest_release_version() {
-  curl -sSfL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" | jq -r '.tag_name' | sed 's/^v//'
+latest_release_json() {
+  curl -sSfL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
+}
+
+release_version_from_json() {
+  jq -r '.tag_name' | sed 's/^v//'
+}
+
+appimage_asset_from_json() {
+  jq -r '.assets[] | select(.name | endswith("-x86_64.AppImage")) | @base64' | head -n 1
+}
+
+asset_field() {
+  local asset="$1"
+  local field="$2"
+  printf '%s' "$asset" | base64 --decode | jq -r "$field"
+}
+
+github_digest_to_sri() {
+  local digest="$1"
+  local algo hex
+  algo="${digest%%:*}"
+  hex="${digest#*:}"
+  [ "$algo" = "sha256" ] || fail "unsupported digest algorithm: ${algo}"
+  nix hash convert --hash-algo sha256 --to sri "$hex"
 }
 
 npm_metadata() {
@@ -43,7 +66,7 @@ npm_metadata() {
   curl -sSfL "${NPM_REGISTRY_URL}/${NPM_PACKAGE_NAME}/${version}"
 }
 
-write_upstream_package_files() {
+write_upstream_cli_package_files() {
   local version="$1"
   local tmpdir
   tmpdir="$(mktemp -d "${TMP_DIR}/update.XXXXXX")"
@@ -64,7 +87,7 @@ write_upstream_package_files() {
   cp "$tmpdir/package/package-lock.json" npm/package-lock.json
 }
 
-update_package_nix() {
+update_desktop_package() {
   local version="$1"
   local hash="$2"
 
@@ -72,10 +95,20 @@ update_package_nix() {
   sed -i "s|hash = \".*\";|hash = \"${hash}\";|" package.nix
 }
 
+update_cli_package() {
+  local version="$1"
+  local hash="$2"
+
+  sed -i "s|version = \".*\";|version = \"${version}\";|" package-cli.nix
+  sed -i "s|hash = \".*\";|hash = \"${hash}\";|" package-cli.nix
+}
+
 validate() {
   log "validating flake"
   nix flake check
-  nix build .#t3
+  nix build .#t3code
+  test -x ./result/bin/t3code
+  nix build .#t3code-cli
   ./result/bin/t3 --help >/dev/null
 }
 
@@ -116,16 +149,19 @@ main() {
   done
 
   ensure_repo_root
+  require_tool base64
   require_tool curl
   require_tool jq
-  require_tool npm
   require_tool nix
+  require_tool npm
+  require_tool tar
 
-  local current latest metadata integrity
-  current="$(current_version)"
-  latest="${target_version:-$(latest_release_version)}"
+  local release_json current latest asset desktop_digest desktop_hash cli_metadata cli_hash
+  current="$(current_desktop_version)"
+  release_json="$(latest_release_json)"
+  latest="${target_version:-$(printf '%s' "$release_json" | release_version_from_json)}"
 
-  log "current version: ${current}"
+  log "current desktop version: ${current}"
   log "target version: ${latest}"
 
   if [ "$current" = "$latest" ]; then
@@ -138,15 +174,27 @@ main() {
     exit 1
   fi
 
-  metadata="$(npm_metadata "$latest")"
-  integrity="$(printf '%s' "$metadata" | jq -r '.dist.integrity')"
-  [ "$integrity" != "null" ] || fail "failed to find dist.integrity for ${latest}"
+  if [ -n "$target_version" ]; then
+    release_json="$(curl -sSfL "https://api.github.com/repos/${GITHUB_REPO}/releases/tags/v${latest}")"
+  fi
 
-  write_upstream_package_files "$latest"
-  update_package_nix "$latest" "$integrity"
+  asset="$(printf '%s' "$release_json" | appimage_asset_from_json)"
+  [ -n "$asset" ] || fail "failed to find an x86_64 AppImage asset for ${latest}"
+
+  desktop_digest="$(asset_field "$asset" '.digest')"
+  [ "$desktop_digest" != "null" ] || fail "failed to read GitHub digest for AppImage ${latest}"
+  desktop_hash="$(github_digest_to_sri "$desktop_digest")"
+
+  cli_metadata="$(npm_metadata "$latest")"
+  cli_hash="$(printf '%s' "$cli_metadata" | jq -r '.dist.integrity')"
+  [ "$cli_hash" != "null" ] || fail "failed to find npm dist.integrity for ${latest}"
+
+  update_desktop_package "$latest" "$desktop_hash"
+  write_upstream_cli_package_files "$latest"
+  update_cli_package "$latest" "$cli_hash"
   validate
 
-  log "updated to ${latest}"
+  log "updated desktop and CLI packages to ${latest}"
 }
 
 main "$@"

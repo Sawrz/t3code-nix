@@ -1,97 +1,62 @@
-{
-  lib,
-  buildNpmPackage,
-  fetchurl,
-  importNpmLock,
-  makeWrapper,
-  nodejs_22,
+{ lib
+, appimageTools
+, fetchurl
 }:
 
 let
-  packageJson = lib.importJSON ./npm/package.json;
-  packageLockJson = lib.importJSON ./npm/package-lock.json;
-  normalizeDependencyRefs =
-    deps:
-    lib.mapAttrs (
-      name: value:
-      if packageLockJson.packages ? "node_modules/${name}" then
-        packageLockJson.packages."node_modules/${name}".version
-      else
-        value
-    ) deps;
-  normalizedPackageLock =
-    packageLockJson
-    // {
-      packages = lib.mapAttrs (
-        _: module:
-        module
-        // lib.optionalAttrs (module ? dependencies) {
-          dependencies = normalizeDependencyRefs module.dependencies;
-        }
-        // lib.optionalAttrs (module ? optionalDependencies) {
-          optionalDependencies = normalizeDependencyRefs module.optionalDependencies;
-        }
-      ) packageLockJson.packages;
-    };
-in
-buildNpmPackage rec {
-  pname = "t3";
-  version = "0.0.3";
-  nodejs = nodejs_22;
+  pname = "t3code";
+  version = "0.0.4";
 
   src = fetchurl {
-    url = "https://registry.npmjs.org/t3/-/t3-${version}.tgz";
-    hash = "sha512-dKBDBQ0adeu/Vuo3ZMZOktWVm36S8jTyQYHYpcueGdNvlqnqkzG85CtxEDLaDun+7la27JSqV5JSY3fGH2C7Aw==";
+    url = "https://github.com/pingdotgg/t3code/releases/download/v${version}/T3-Code-${version}-x86_64.AppImage";
+    hash = "sha256-HlkQ/uPLXHh2Duamrmhp31yQqnETawQ4Ru7kg2MmpVs=";
   };
 
-  sourceRoot = "package";
-
-  npmDeps = importNpmLock {
-    package = packageJson;
-    packageLock = normalizedPackageLock;
-    fetcherOpts = {
-      "node_modules/@effect/platform-node" = {
-        name = "platform-node.tgz";
-      };
-      "node_modules/@effect/platform-node-shared" = {
-        name = "platform-node-shared.tgz";
-      };
-      "node_modules/@effect/sql-sqlite-bun" = {
-        name = "sql-sqlite-bun.tgz";
-      };
-      "node_modules/effect" = {
-        name = "effect.tgz";
-      };
-    };
+  appimageContents = appimageTools.extractType2 {
+    inherit pname version src;
   };
+in
+appimageTools.wrapType2 {
+  inherit pname version src;
 
-  npmConfigHook = importNpmLock.npmConfigHook;
-  nativeBuildInputs = [ makeWrapper ];
-  dontNpmBuild = true;
+  extraInstallCommands = ''
+    mkdir -p "$out/share"
 
-  postPatch = ''
-    cp ${./npm/package.json} package.json
-    cp ${./npm/package-lock.json} package-lock.json
-    sed -i "s/var version = \\\".*\\\";/var version = \\\"${version}\\\";/" dist/index.mjs dist/index.cjs
+    if [ -d ${appimageContents}/usr/share ]; then
+      cp -r ${appimageContents}/usr/share/* "$out/share/"
+    fi
+
+    desktop_file="$(find "$out/share" -type f -name '*.desktop' | head -n 1 || true)"
+    if [ -z "$desktop_file" ]; then
+      desktop_source="$(find ${appimageContents} -maxdepth 2 -type f -name '*.desktop' | head -n 1 || true)"
+      if [ -n "$desktop_source" ]; then
+        desktop_file="$out/share/applications/$(basename "$desktop_source")"
+        install -Dm444 "$desktop_source" "$desktop_file"
+      fi
+    fi
+
+    if [ -n "$desktop_file" ]; then
+      sed -i \
+        -e 's|Exec=AppRun|Exec=${pname}|g' \
+        -e 's|Exec=AppRun %U|Exec=${pname} %U|g' \
+        -e 's|TryExec=AppRun|TryExec=${pname}|g' \
+        -e 's|^Icon=.*$|Icon=${pname}|' \
+        "$desktop_file"
+    fi
+
+    if [ -f ${appimageContents}/.DirIcon ]; then
+      install -Dm444 ${appimageContents}/.DirIcon "$out/share/pixmaps/${pname}.png"
+    fi
   '';
 
-  installPhase = ''
-    runHook preInstall
-
-    mkdir -p $out/lib/node_modules/t3 $out/bin
-    cp -r . $out/lib/node_modules/t3
-
-    makeWrapper ${nodejs_22}/bin/node $out/bin/t3 \
-      --add-flags "$out/lib/node_modules/t3/dist/index.mjs"
-
-    runHook postInstall
-  '';
-
-  meta = with lib; {
-    description = "T3 Code CLI packaged for Nix";
+  meta = {
+    description = "T3 Code desktop app packaged from the upstream AppImage";
     homepage = "https://github.com/pingdotgg/t3code";
-    license = licenses.mit;
-    mainProgram = "t3";
-    platforms = platforms.linux;
+    changelog = "https://github.com/pingdotgg/t3code/releases/tag/v${version}";
+    downloadPage = "https://github.com/pingdotgg/t3code/releases";
+    license = lib.licenses.mit;
+    mainProgram = pname;
+    sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
+    platforms = [ "x86_64-linux" ];
   };
 }
