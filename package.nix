@@ -43,6 +43,7 @@ let
     in
     appimageTools.wrapType2 {
       inherit pname version src;
+      nativeBuildInputs = [ makeWrapper ];
 
       extraInstallCommands = ''
         mkdir -p "$out/share"
@@ -61,11 +62,17 @@ let
         fi
 
         if [ -n "$desktop_file" ]; then
+          desktop_basename="$(basename "$desktop_file")"
+
           sed -i \
             -e 's|Exec=AppRun|Exec=${pname}|g' \
             -e 's|Exec=AppRun %U|Exec=${pname} %U|g' \
             -e 's|TryExec=AppRun|TryExec=${pname}|g' \
             "$desktop_file"
+
+          wrapProgram "$out/bin/${pname}" \
+            --set CHROME_DESKTOP "$desktop_basename" \
+            --prefix XDG_DATA_DIRS : "$out/share"
         fi
 
         if [ -f ${appimageContents}/.DirIcon ]; then
