@@ -74,9 +74,13 @@ jobs:
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
       - name: Warn if update token is not configured
-        if: steps.check.outputs.update_needed == 'true' && secrets.GH_TOKEN_FOR_UPDATES == ''
+        if: steps.check.outputs.update_needed == 'true'
+        env:
+          GH_TOKEN_FOR_UPDATES: ${{ secrets.GH_TOKEN_FOR_UPDATES }}
         run: |
-          echo "::warning::GH_TOKEN_FOR_UPDATES is not set. Pull requests created with GITHUB_TOKEN will not trigger pull_request CI."
+          if [ -z "${GH_TOKEN_FOR_UPDATES}" ]; then
+            echo "::warning::GH_TOKEN_FOR_UPDATES is not set. Pull requests created with GITHUB_TOKEN will not trigger pull_request CI."
+          fi
 
       - name: Ensure automatic label exists
         if: steps.check.outputs.update_needed == 'true'
