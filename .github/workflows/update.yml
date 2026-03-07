@@ -1,0 +1,87 @@
+name: Check for T3 Code Updates
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Specific version to update to
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check for update
+        id: check
+        run: |
+          set +e
+          ./scripts/update.sh --check
+          status=$?
+          set -e
+
+          if [ "$status" -eq 0 ]; then
+            echo "update_needed=false" >> "$GITHUB_OUTPUT"
+          elif [ "$status" -eq 1 ]; then
+            echo "update_needed=true" >> "$GITHUB_OUTPUT"
+          else
+            exit "$status"
+          fi
+
+      - name: Apply update
+        if: steps.check.outputs.update_needed == 'true'
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            ./scripts/update.sh --version "${{ github.event.inputs.version }}"
+          else
+            ./scripts/update.sh
+          fi
+
+      - name: Read updated version
+        if: steps.check.outputs.update_needed == 'true'
+        id: version
+        run: |
+          version="$(sed -n 's/.*version = "\([^"]*\)".*/\1/p' package.nix | head -1)"
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create pull request
+        if: steps.check.outputs.update_needed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update t3code to version ${{ steps.version.outputs.value }}"
+          title: "chore: update t3code to version ${{ steps.version.outputs.value }}"
+          branch: "update-t3code-${{ steps.version.outputs.value }}"
+          delete-branch: true
+          body: |
+            Automated update for T3 Code.
+
+            - Updated packaged version to `${{ steps.version.outputs.value }}`
+            - Regenerated `npm/package.json` and `npm/package-lock.json`
+            - Revalidated `nix flake check` and `nix build .#t3`
+
+      - name: Summarize
+        if: always()
+        run: |
+          echo "## Update run" >> "$GITHUB_STEP_SUMMARY"
+          echo "- update needed: ${{ steps.check.outputs.update_needed || 'false' }}" >> "$GITHUB_STEP_SUMMARY"
