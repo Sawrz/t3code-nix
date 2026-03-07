@@ -12,12 +12,14 @@ on:
 
 permissions:
   contents: write
+  issues: write
   pull-requests: write
 
 jobs:
   update:
     runs-on: ubuntu-latest
     env:
+      GH_UPDATE_TOKEN: ${{ secrets.GH_TOKEN_FOR_UPDATES || github.token }}
       REQUESTED_VERSION: ${{ github.event.inputs.version || '' }}
     steps:
       - name: Check out repository
@@ -71,16 +73,33 @@ jobs:
           version="$(sed -n 's/.*version = "\([^"]*\)".*/\1/p' package.nix | head -1)"
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
+      - name: Warn if update token is not configured
+        if: steps.check.outputs.update_needed == 'true' && secrets.GH_TOKEN_FOR_UPDATES == ''
+        run: |
+          echo "::warning::GH_TOKEN_FOR_UPDATES is not set. Pull requests created with GITHUB_TOKEN will not trigger pull_request CI."
+
+      - name: Ensure automatic label exists
+        if: steps.check.outputs.update_needed == 'true'
+        run: |
+          gh label create automatic \
+            --color 1D76DB \
+            --description "Automated repository maintenance" \
+            --force
+        env:
+          GH_TOKEN: ${{ github.token }}
+
       - name: Create pull request
         if: steps.check.outputs.update_needed == 'true'
         id: cpr
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ env.GH_UPDATE_TOKEN }}
+          branch-token: ${{ env.GH_UPDATE_TOKEN }}
           commit-message: "chore: update t3code to version ${{ steps.version.outputs.value }}"
           title: "chore: update t3code to version ${{ steps.version.outputs.value }}"
           branch: "update-t3code-${{ steps.version.outputs.value }}"
           delete-branch: true
+          labels: automatic
           body: |
             Automated update for T3 Code.
 
@@ -102,7 +121,7 @@ jobs:
         if: steps.cpr.outputs.pull-request-number != ''
         run: gh pr merge --squash --auto "${{ steps.cpr.outputs.pull-request-number }}"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ env.GH_UPDATE_TOKEN }}
 
       - name: Summarize
         if: always()

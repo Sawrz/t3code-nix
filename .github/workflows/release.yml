@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - package.nix
+      - package-cli.nix
+      - npm/package.json
+      - npm/package-lock.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Read packaged version
+        id: version
+        run: |
+          version="$(sed -n 's/.*version = "\([^"]*\)".*/\1/p' package.nix | head -1)"
+          [ -n "$version" ]
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check for existing release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v${{ steps.version.outputs.value }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub release
+        if: steps.release.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v${{ steps.version.outputs.value }}"
+          gh release create "$tag" \
+            --target "${GITHUB_SHA}" \
+            --title "$tag" \
+            --notes "Packaging release for upstream T3 Code ${tag}." \
+            --generate-notes
+
+      - name: Summarize
+        if: always()
+        run: |
+          echo "## Release run" >> "$GITHUB_STEP_SUMMARY"
+          echo "- version: v${{ steps.version.outputs.value }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- release already existed: ${{ steps.release.outputs.exists || 'false' }}" >> "$GITHUB_STEP_SUMMARY"

@@ -134,6 +134,14 @@ Responsibilities:
 - verify the desktop launcher exists,
 - verify the CLI entrypoint runs.
 
+### `.github/workflows/release.yml`
+
+Responsibilities:
+
+- run on pushes to `main` that update packaged artifacts,
+- read the packaged version from `package.nix`,
+- create a `v<version>` tag and matching GitHub release when one does not already exist.
+
 ## Update Invariant
 
 The repository intentionally keeps the desktop package and CLI package on the same upstream version.
@@ -146,6 +154,16 @@ That means the updater should only succeed when both are available for the targe
 - npm `t3@<version>` exists.
 
 If one exists without the other, the update should fail explicitly rather than silently creating a split-version repository state.
+
+## GitHub Setup Requirements
+
+Repository settings should be configured so that:
+
+- GitHub Actions has read/write workflow permissions,
+- GitHub Actions is allowed to create pull requests,
+- auto-merge is enabled,
+- `main` is protected by required CI checks,
+- a `GH_TOKEN_FOR_UPDATES` secret is available if updater PRs must trigger `pull_request` workflows.
 
 ## Validation Expectations
 
