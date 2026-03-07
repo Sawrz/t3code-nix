@@ -106,6 +106,24 @@ Pull requests and pushes are validated separately by CI on:
 - `macos-15` for `aarch64-darwin`
 - `macos-15-intel` for `x86_64-darwin`
 
+Merged updates are released automatically on `main` by tagging the repository with `v<version>` and publishing a matching GitHub release.
+
+## Repository Setup
+
+For the automation to work cleanly, configure these repository settings:
+
+- Actions > General > Workflow permissions: `Read and write permissions`
+- Actions > General > Allow GitHub Actions to create and approve pull requests: enabled
+- Pull Requests: auto-merge enabled
+- Branches: protect `main` and require the three CI jobs from `CI`
+- Branches: automatically delete head branches enabled
+
+Recommended secret:
+
+- `GH_TOKEN_FOR_UPDATES`: a fine-grained personal access token with `Contents: Read and write` and `Pull requests: Read and write`
+
+The updater falls back to `GITHUB_TOKEN` if the secret is absent, but in that mode the bot-created PR will not trigger `pull_request` CI.
+
 ## Limitations
 
 - Desktop support is currently `x86_64-linux`, `x86_64-darwin`, and `aarch64-darwin`.
