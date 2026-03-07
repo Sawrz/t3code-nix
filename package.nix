@@ -65,7 +65,6 @@ let
             -e 's|Exec=AppRun|Exec=${pname}|g' \
             -e 's|Exec=AppRun %U|Exec=${pname} %U|g' \
             -e 's|TryExec=AppRun|TryExec=${pname}|g' \
-            -e 's|^Icon=.*$|Icon=${pname}|' \
             "$desktop_file"
         fi
 
