@@ -8,7 +8,7 @@ This document is a handoff-grade implementation plan for this repository. Anothe
 
 Build and maintain a Nix flake that:
 
-- packages the upstream T3 Code desktop application from the GitHub AppImage release asset,
+- packages the upstream T3 Code desktop application from the GitHub release assets for Linux and macOS,
 - exposes the upstream `t3` CLI as an optional secondary package from npm,
 - tracks upstream releases automatically,
 - updates pinned versions and hashes in-repo,
@@ -21,7 +21,11 @@ Verified on March 7, 2026:
 - Upstream repository: `https://github.com/pingdotgg/t3code`
 - Latest release: `v0.0.4`
 - Desktop Linux asset: `T3-Code-0.0.4-x86_64.AppImage`
-- Desktop asset digest from GitHub API: `sha256:1e5910fee3cb5c78760ee6a6ae6869df5c90aa71136b043846eee4836326a55b`
+- Desktop Linux asset digest from GitHub API: `sha256:1e5910fee3cb5c78760ee6a6ae6869df5c90aa71136b043846eee4836326a55b`
+- Desktop macOS x64 zip asset: `T3-Code-0.0.4-x64.zip`
+- Desktop macOS x64 zip digest from GitHub API: `sha256:6a8c628b541403f44d9384366e429d01005c3ef41c1536614120b45451156e35`
+- Desktop macOS arm64 zip asset: `T3-Code-0.0.4-arm64.zip`
+- Desktop macOS arm64 zip digest from GitHub API: `sha256:e50b99a62d55ac4061099dd95d5d3c21add371f6342f7f7e98e6f06561cbd1c6`
 - Matching npm package exists: `t3@0.0.4`
 - Matching npm tarball integrity: `sha512-lr778VXybWvKbnzLw1L+w956tIbPXfOj91r+ozHMzcBydOEGAwnFoHzl6zpNPj7qfGX7IUyvao1duVrleeJtZg==`
 
@@ -31,7 +35,7 @@ Verified on March 7, 2026:
 
 The primary artifact is the desktop application, not the npm CLI.
 
-The default flake package and app must therefore resolve to the desktop AppImage-based package.
+The default flake package and app must therefore resolve to the desktop package, using a Linux AppImage on `x86_64-linux` and macOS zip archives on Darwin.
 
 ### Secondary artifact
 
@@ -58,10 +62,10 @@ Desktop package source of truth.
 Responsibilities:
 
 - pin desktop version,
-- pin AppImage hash,
-- fetch the AppImage release asset,
-- wrap it with `appimageTools.wrapType2`,
-- install desktop metadata,
+- pin Linux and macOS desktop hashes,
+- fetch the Linux AppImage or the macOS zip archive depending on platform,
+- wrap the Linux AppImage with `appimageTools.wrapType2`,
+- install the macOS `.app` bundle and a `t3code` launcher on Darwin,
 - expose correct package metadata.
 
 ### `package-cli.nix`
@@ -103,7 +107,7 @@ Responsibilities:
 Responsibilities:
 
 - fetch the latest GitHub release JSON,
-- extract the `x86_64` AppImage asset and digest,
+- extract the `x86_64` AppImage, `x64.zip`, and `arm64.zip` desktop assets and digests,
 - convert the GitHub digest to SRI format for Nix,
 - verify a matching npm `t3` version exists,
 - refresh `npm/package.json` and `npm/package-lock.json`,
@@ -128,6 +132,8 @@ The repository intentionally keeps the desktop package and CLI package on the sa
 That means the updater should only succeed when both are available for the target version:
 
 - GitHub release AppImage exists,
+- GitHub release macOS `x64.zip` exists,
+- GitHub release macOS `arm64.zip` exists,
 - npm `t3@<version>` exists.
 
 If one exists without the other, the update should fail explicitly rather than silently creating a split-version repository state.
@@ -137,6 +143,10 @@ If one exists without the other, the update should fail explicitly rather than s
 Minimum local validation after an update:
 
 - `nix flake check`
+- `nix eval .#packages.x86_64-darwin.t3code.drvPath`
+- `nix eval .#packages.aarch64-darwin.t3code.drvPath`
+- `nix eval .#packages.x86_64-darwin.t3code-cli.drvPath`
+- `nix eval .#packages.aarch64-darwin.t3code-cli.drvPath`
 - `nix build .#t3code`
 - `test -x ./result/bin/t3code`
 - `nix build .#t3code-cli`
@@ -146,10 +156,8 @@ If GUI execution is practical in the environment, the desktop binary should also
 
 ## Known Constraints
 
-- Desktop packaging is currently Linux-only and specifically `x86_64-linux`.
-- The desktop package is a wrapped upstream binary AppImage, so this is not a source build.
+- Desktop packaging is currently implemented for `x86_64-linux`, `x86_64-darwin`, and `aarch64-darwin`.
+- There is no upstream Linux ARM desktop artifact in the releases, so `aarch64-linux` is intentionally unsupported.
+- The desktop package is built from upstream binary artifacts, so this is not a source build.
 - The CLI package depends on native npm modules such as `node-pty`, so validation should not be assumed across architectures without an actual build.
-
-## Next Extension
-
-After the x86_64 desktop package is stable, the next meaningful extension is `aarch64-linux` validation. That work should happen only after the primary desktop flow is confirmed on the current machine.
+- Local build validation has only been performed on `x86_64-linux`; Darwin support is currently evaluation-level in this environment.

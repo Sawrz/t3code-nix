@@ -8,6 +8,11 @@
 
   outputs = { self, nixpkgs, flake-utils }:
     let
+      supportedSystems = [
+        "x86_64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
       overlay = final: prev: {
         t3code = final.callPackage ./package.nix { };
         t3code-desktop = final.t3code;
@@ -20,7 +25,7 @@
         meta = drv.meta;
       };
     in
-    flake-utils.lib.eachDefaultSystem
+    flake-utils.lib.eachSystem supportedSystems
       (
         system:
         let

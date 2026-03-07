@@ -95,6 +95,6 @@ buildNpmPackage rec {
     homepage = "https://github.com/pingdotgg/t3code";
     license = licenses.mit;
     mainProgram = "t3";
-    platforms = platforms.linux;
+    platforms = platforms.unix;
   };
 }

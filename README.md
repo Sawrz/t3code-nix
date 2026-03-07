@@ -4,7 +4,7 @@ Nix flake packaging for the upstream [T3 Code](https://github.com/pingdotgg/t3co
 
 ## Why this exists
 
-Upstream currently ships a Linux AppImage for the desktop app and publishes the CLI through npm. This repository packages both artifacts directly in Nix so NixOS users can install pinned versions without ad hoc runtime downloads.
+Upstream currently ships a Linux AppImage, macOS desktop archives, and the CLI through npm. This repository packages those artifacts directly in Nix so users can install pinned versions without ad hoc runtime downloads.
 
 The desktop application is the primary output of this flake.
 
@@ -14,7 +14,7 @@ The repository structure and update automation approach are inspired by [sadjow/
 
 ## Packages
 
-- `t3code` / `t3code-desktop`: desktop application packaged from the upstream AppImage
+- `t3code` / `t3code-desktop`: desktop application packaged from the upstream Linux AppImage or macOS zip archive, depending on platform
 - `t3code-cli` / `t3`: optional CLI packaged from the upstream npm tarball
 - `default`: desktop application
 
@@ -68,9 +68,8 @@ Use as a flake input:
 
 Desktop package:
 
-- fetches the upstream `x86_64` AppImage from GitHub releases
-- wraps it with `appimageTools.wrapType2`
-- installs desktop metadata into the Nix store
+- `x86_64-linux`: fetches the upstream AppImage from GitHub releases and wraps it with `appimageTools.wrapType2`
+- `x86_64-darwin` and `aarch64-darwin`: fetches the matching upstream zip archive and installs the `.app` bundle into the Nix store with a `t3code` launcher
 
 CLI package:
 
@@ -85,24 +84,28 @@ The GitHub Actions workflow checks upstream releases every six hours.
 An update is valid only when both of these exist for the same version:
 
 - a GitHub release in `pingdotgg/t3code` with an `x86_64` AppImage asset
+- the matching GitHub release also includes `x64.zip` and `arm64.zip` macOS desktop assets
 - a matching npm package version `t3@<version>`
 
 When a new version is found, the updater:
 
 - refreshes `package.nix` for the desktop AppImage
+- refreshes `package.nix` for the Linux and macOS desktop hashes
 - refreshes `package-cli.nix` for the CLI package
 - regenerates `npm/package.json`
 - regenerates `npm/package-lock.json`
 - runs `nix flake check`
+- evaluates the Darwin desktop and CLI derivations
 - builds `.#t3code`
 - builds `.#t3code-cli`
 - opens a pull request
 
 ## Limitations
 
-- Desktop support is currently `x86_64-linux` only.
-- The desktop package is built from an upstream binary AppImage.
+- Desktop support is currently `x86_64-linux`, `x86_64-darwin`, and `aarch64-darwin`.
+- The desktop package is built from upstream binary artifacts.
 - The CLI package is optional and follows upstream npm publication.
+- Local build validation has only been performed on `x86_64-linux` so far. Darwin packages are evaluated and hash-pinned, but not built in this environment.
 - Upstream notes that real usage still depends on external tools such as Codex CLI being installed and configured.
 
 ## Development
