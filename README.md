@@ -79,7 +79,7 @@ CLI package:
 
 ## Update automation
 
-The GitHub Actions workflow checks upstream releases every six hours.
+The GitHub Actions update workflow checks upstream releases every six hours.
 
 An update is valid only when both of these exist for the same version:
 
@@ -100,12 +100,18 @@ When a new version is found, the updater:
 - builds `.#t3code-cli`
 - opens a pull request
 
+Pull requests and pushes are validated separately by CI on:
+
+- `ubuntu-latest` for `x86_64-linux`
+- `macos-15` for `aarch64-darwin`
+- `macos-15-intel` for `x86_64-darwin`
+
 ## Limitations
 
 - Desktop support is currently `x86_64-linux`, `x86_64-darwin`, and `aarch64-darwin`.
 - The desktop package is built from upstream binary artifacts.
 - The CLI package is optional and follows upstream npm publication.
-- Local build validation has only been performed on `x86_64-linux` so far. Darwin packages are evaluated and hash-pinned, but not built in this environment.
+- GitHub Actions is configured to build the flake on `x86_64-linux`, `x86_64-darwin`, and `aarch64-darwin`.
 - Upstream notes that real usage still depends on external tools such as Codex CLI being installed and configured.
 
 ## Development

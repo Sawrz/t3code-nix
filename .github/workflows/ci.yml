@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            runs_on: ubuntu-latest
+            system: x86_64-linux
+          - name: macOS Apple Silicon
+            runs_on: macos-15
+            system: aarch64-darwin
+          - name: macOS Intel
+            runs_on: macos-15-intel
+            system: x86_64-darwin
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Confirm runner system
+        run: |
+          actual="$(nix eval --raw --impure --expr builtins.currentSystem)"
+          test "$actual" = "${{ matrix.system }}"
+
+      - name: Evaluate host flake checks
+        run: nix flake check
+
+      - name: Build desktop package
+        run: nix build .#t3code --out-link result-t3code
+
+      - name: Verify desktop launcher
+        run: test -x ./result-t3code/bin/t3code
+
+      - name: Build CLI package
+        run: nix build .#t3code-cli --out-link result-t3
+
+      - name: Verify CLI package
+        run: ./result-t3/bin/t3 --help >/dev/null

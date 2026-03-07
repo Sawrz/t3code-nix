@@ -125,6 +125,15 @@ Responsibilities:
 - run the real update when needed,
 - open a PR with the changed files.
 
+### `.github/workflows/ci.yml`
+
+Responsibilities:
+
+- run on pushes, pull requests, and manual dispatch,
+- build the flake on `x86_64-linux`, `x86_64-darwin`, and `aarch64-darwin`,
+- verify the desktop launcher exists,
+- verify the CLI entrypoint runs.
+
 ## Update Invariant
 
 The repository intentionally keeps the desktop package and CLI package on the same upstream version.
@@ -160,4 +169,4 @@ If GUI execution is practical in the environment, the desktop binary should also
 - There is no upstream Linux ARM desktop artifact in the releases, so `aarch64-linux` is intentionally unsupported.
 - The desktop package is built from upstream binary artifacts, so this is not a source build.
 - The CLI package depends on native npm modules such as `node-pty`, so validation should not be assumed across architectures without an actual build.
-- Local build validation has only been performed on `x86_64-linux`; Darwin support is currently evaluation-level in this environment.
+- GitHub Actions should provide real build validation on `x86_64-linux`, `x86_64-darwin`, and `aarch64-darwin`.

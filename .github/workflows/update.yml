@@ -92,8 +92,11 @@ jobs:
 
             Validation:
             - `nix flake check`
+            - `nix eval .#packages.x86_64-darwin.t3code.drvPath`
+            - `nix eval .#packages.aarch64-darwin.t3code.drvPath`
             - `nix build .#t3code`
             - `nix build .#t3code-cli`
+            - GitHub Actions CI builds the flake on Linux, Apple Silicon macOS, and Intel macOS
 
       - name: Enable auto-merge
         if: steps.cpr.outputs.pull-request-number != ''
