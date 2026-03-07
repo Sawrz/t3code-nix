@@ -73,6 +73,7 @@ jobs:
 
       - name: Create pull request
         if: steps.check.outputs.update_needed == 'true'
+        id: cpr
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -94,9 +95,16 @@ jobs:
             - `nix build .#t3code`
             - `nix build .#t3code-cli`
 
+      - name: Enable auto-merge
+        if: steps.cpr.outputs.pull-request-number != ''
+        run: gh pr merge --squash --auto "${{ steps.cpr.outputs.pull-request-number }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Summarize
         if: always()
         run: |
           echo "## Update run" >> "$GITHUB_STEP_SUMMARY"
           echo "- requested version: ${REQUESTED_VERSION:-latest}" >> "$GITHUB_STEP_SUMMARY"
           echo "- update needed: ${{ steps.check.outputs.update_needed || 'false' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- pull request: ${{ steps.cpr.outputs.pull-request-number || 'none' }}" >> "$GITHUB_STEP_SUMMARY"
