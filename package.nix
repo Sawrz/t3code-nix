@@ -68,6 +68,7 @@ let
             -e 's|Exec=AppRun|Exec=${pname}|g' \
             -e 's|Exec=AppRun %U|Exec=${pname} %U|g' \
             -e 's|TryExec=AppRun|TryExec=${pname}|g' \
+            -e 's|^StartupWMClass=.*$|StartupWMClass=t3-code-desktop|g' \
             "$desktop_file"
 
           wrapProgram "$out/bin/${pname}" \
