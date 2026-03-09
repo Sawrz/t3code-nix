@@ -56,4 +56,5 @@ jobs:
         run: nix build .#t3code-cli --out-link result-t3
 
       - name: Verify CLI package
-        run: ./result-t3/bin/t3 --help >/dev/null
+        run: |
+          ./result-t3/lib/node_modules/t3/dist/index.mjs --help >/dev/null

@@ -118,7 +118,7 @@ validate() {
   nix build .#t3code
   test -x ./result/bin/t3code
   nix build .#t3code-cli
-  ./result/bin/t3 --help >/dev/null
+  ./result/lib/node_modules/t3/dist/index.mjs --help >/dev/null
 }
 
 usage() {
