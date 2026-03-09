@@ -3,12 +3,15 @@
 , fetchurl
 , importNpmLock
 , makeWrapper
+, minimumCodexVersion
+, mkCodexRuntimeCheck
 , nodejs_22
 }:
 
 let
   packageJson = lib.importJSON ./npm/package.json;
   packageLockJson = lib.importJSON ./npm/package-lock.json;
+  codexRuntimeCheck = mkCodexRuntimeCheck lib "T3 CLI";
   normalizeDependencyRefs =
     deps:
     lib.mapAttrs
@@ -85,7 +88,8 @@ buildNpmPackage rec {
     cp -r . $out/lib/node_modules/t3
 
     makeWrapper ${nodejs_22}/bin/node $out/bin/t3 \
-      --add-flags "$out/lib/node_modules/t3/dist/index.mjs"
+      --add-flags "$out/lib/node_modules/t3/dist/index.mjs" \
+      --run ${lib.escapeShellArg codexRuntimeCheck}
 
     runHook postInstall
   '';

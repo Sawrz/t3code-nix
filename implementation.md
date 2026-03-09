@@ -177,7 +177,7 @@ Minimum local validation after an update:
 - `nix build .#t3code`
 - `test -x ./result/bin/t3code`
 - `nix build .#t3code-cli`
-- `./result/bin/t3 --help`
+- `./result/lib/node_modules/t3/dist/index.mjs --help`
 
 If GUI execution is practical in the environment, the desktop binary should also be launched manually. In headless CI, build validation is sufficient.
 

@@ -1,11 +1,12 @@
-{
-  lib,
-  stdenv,
-  stdenvNoCC,
-  appimageTools,
-  fetchurl,
-  makeWrapper,
-  unzip
+{ lib
+, stdenv
+, stdenvNoCC
+, appimageTools
+, fetchurl
+, makeWrapper
+, minimumCodexVersion
+, mkCodexRuntimeCheck
+, unzip
 }:
 
 let
@@ -14,6 +15,7 @@ let
   linuxHash = "sha256-jdLmriOb9WsusOICaPhehxDx4gAsxHVb8mJPIkgFTZg=";
   darwinX64Hash = "sha256-rSKH3792seQQW8iHNrWYdUDXR71yFxhTgoeAIACKSuA=";
   darwinArm64Hash = "sha256-b7tDzAzXazvKNJl693P2gya7bPHevATSabQwxlkmt10=";
+  codexRuntimeCheck = mkCodexRuntimeCheck lib "T3 Code";
 
   commonMeta = {
     description = "T3 Code desktop app packaged from upstream release artifacts";
@@ -73,7 +75,8 @@ let
 
           wrapProgram "$out/bin/${pname}" \
             --set CHROME_DESKTOP "$desktop_basename" \
-            --prefix XDG_DATA_DIRS : "$out/share"
+            --prefix XDG_DATA_DIRS : "$out/share" \
+            --run ${lib.escapeShellArg codexRuntimeCheck}
         fi
 
         if [ -f ${appimageContents}/.DirIcon ]; then
@@ -122,7 +125,8 @@ let
 
       makeWrapper \
         "$out/Applications/${darwinAppName}/Contents/MacOS/${darwinExecutable}" \
-        "$out/bin/${pname}"
+        "$out/bin/${pname}" \
+        --run ${lib.escapeShellArg codexRuntimeCheck}
 
       runHook postInstall
     '';
