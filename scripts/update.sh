@@ -71,7 +71,7 @@ write_upstream_cli_package_files() {
   local version="$1"
   local tmpdir
   tmpdir="$(mktemp -d "${TMP_DIR}/update.XXXXXX")"
-  trap 'rm -rf "$tmpdir"' RETURN
+  trap 'rm -rf -- "$tmpdir"; trap - RETURN' RETURN
 
   log "downloading npm tarball for ${version}"
   curl -sSfL "${NPM_REGISTRY_URL}/${NPM_PACKAGE_NAME}/-/${NPM_PACKAGE_NAME}-${version}.tgz" -o "$tmpdir/package.tgz"
