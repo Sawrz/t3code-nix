@@ -67,6 +67,43 @@ npm_metadata() {
   curl -sSfL "${NPM_REGISTRY_URL}/${NPM_PACKAGE_NAME}/${version}"
 }
 
+release_assets_ready() {
+  local release_json="$1"
+  local asset digest
+
+  for suffix in '-x86_64.AppImage' '-x64.zip' '-arm64.zip'; do
+    asset="$(printf '%s' "$release_json" | asset_from_json "$suffix")"
+    [ -n "$asset" ] || return 1
+
+    digest="$(asset_field "$asset" '.digest')"
+    [ -n "$digest" ] || return 1
+    [ "$digest" != "null" ] || return 1
+  done
+}
+
+cli_package_ready() {
+  local version="$1"
+  local metadata tarball integrity
+
+  metadata="$(npm_metadata "$version" 2>/dev/null)" || return 1
+  tarball="$(printf '%s' "$metadata" | jq -r '.dist.tarball')"
+  integrity="$(printf '%s' "$metadata" | jq -r '.dist.integrity')"
+
+  [ -n "$tarball" ] || return 1
+  [ "$tarball" != "null" ] || return 1
+  [ -n "$integrity" ] || return 1
+  [ "$integrity" != "null" ] || return 1
+
+  curl -sSfLI "$tarball" >/dev/null
+}
+
+version_is_ready() {
+  local release_json="$1"
+  local version="$2"
+
+  release_assets_ready "$release_json" && cli_package_ready "$version"
+}
+
 write_upstream_cli_package_files() {
   local version="$1"
   local tmpdir
@@ -180,13 +217,18 @@ main() {
     exit 0
   fi
 
-  if [ "$check_only" = true ]; then
-    log "update available: ${current} -> ${latest}"
-    exit 1
-  fi
-
   if [ -n "$target_version" ]; then
     release_json="$(curl -sSfL "https://api.github.com/repos/${GITHUB_REPO}/releases/tags/v${latest}")"
+  fi
+
+  if [ "$check_only" = true ]; then
+    if ! version_is_ready "$release_json" "$latest"; then
+      log "upstream artifacts for ${latest} are not ready yet"
+      exit 0
+    fi
+
+    log "update available: ${current} -> ${latest}"
+    exit 1
   fi
 
   linux_asset="$(printf '%s' "$release_json" | asset_from_json '-x86_64.AppImage')"
