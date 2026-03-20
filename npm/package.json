@@ -9,14 +9,15 @@
     "t3": "./dist/index.mjs"
   },
   "type": "module",
-  "version": "0.0.11",
+  "version": "0.0.13",
   "engines": {
-    "node": "^22.13 || ^23.4 || >=24.10"
+    "node": "^22.16 || ^23.11 || >=24.10"
   },
   "files": [
     "dist"
   ],
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.77",
     "@effect/platform-node": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@8881a9b",
     "@effect/sql-sqlite-bun": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/sql-sqlite-bun@8881a9b",
     "@pierre/diffs": "^1.1.0-beta.16",
