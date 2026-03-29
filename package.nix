@@ -10,10 +10,10 @@
 
 let
   pname = "t3code";
-  version = "0.0.14";
-  linuxHash = "sha256-miaZTF3XMQws5E0VlIt1ioS3Y71Vb2cF35pl2Rz0VwA=";
-  darwinX64Hash = "sha256-pH4Tzz3wIFmf7e/hErssaVxn554ME5206/QQ7OzZFco=";
-  darwinArm64Hash = "sha256-LbWtv9zbWKXfF4XDmtw2EP83ftP2i9qq2PzvSAObAhA=";
+  version = "0.0.15";
+  linuxHash = "sha256-Z8y7SWH55+ZC7cRpgo0cdG273rbDiFS3pXQt3up7sDg=";
+  darwinX64Hash = "sha256-r/q3D2b1Z/ePffgJ752eLZEUcW7Bbn2V9jqrTyX0l/0=";
+  darwinArm64Hash = "sha256-9pEH5br0vCGRRknSup0NvKPt7p0Hnk/kYAwRjOOpmQ4=";
 
   commonMeta = {
     description = "T3 Code desktop app packaged from upstream release artifacts";

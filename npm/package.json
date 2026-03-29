@@ -9,7 +9,7 @@
     "t3": "./dist/index.mjs"
   },
   "type": "module",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "engines": {
     "node": "^22.16 || ^23.11 || >=24.10"
   },
@@ -18,10 +18,10 @@
   ],
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.77",
-    "@effect/platform-node": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/platform-node@8881a9b",
-    "@effect/sql-sqlite-bun": "https://pkg.pr.new/Effect-TS/effect-smol/@effect/sql-sqlite-bun@8881a9b",
+    "@effect/platform-node": "4.0.0-beta.42",
+    "@effect/sql-sqlite-bun": "4.0.0-beta.42",
     "@pierre/diffs": "^1.1.0-beta.16",
-    "effect": "https://pkg.pr.new/Effect-TS/effect-smol/effect@8881a9b",
+    "effect": "4.0.0-beta.42",
     "node-pty": "^1.1.0",
     "open": "^10.1.0",
     "ws": "^8.18.0"
