@@ -6,10 +6,10 @@
     "directory": "apps/server"
   },
   "bin": {
-    "t3": "./dist/index.mjs"
+    "t3": "./dist/bin.mjs"
   },
   "type": "module",
-  "version": "0.0.15",
+  "version": "0.0.17",
   "engines": {
     "node": "^22.16 || ^23.11 || >=24.10"
   },
@@ -18,12 +18,22 @@
   ],
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.77",
-    "@effect/platform-node": "4.0.0-beta.42",
-    "@effect/sql-sqlite-bun": "4.0.0-beta.42",
+    "@effect/platform-bun": "4.0.0-beta.45",
+    "@effect/platform-node": "4.0.0-beta.45",
+    "@effect/sql-sqlite-bun": "4.0.0-beta.45",
     "@pierre/diffs": "^1.1.0-beta.16",
-    "effect": "4.0.0-beta.42",
+    "effect": "4.0.0-beta.45",
     "node-pty": "^1.1.0",
-    "open": "^10.1.0",
-    "ws": "^8.18.0"
+    "open": "^10.1.0"
+  },
+  "overrides": {
+    "@effect/atom-react": "4.0.0-beta.45",
+    "@effect/platform-bun": "4.0.0-beta.45",
+    "@effect/platform-node": "4.0.0-beta.45",
+    "@effect/platform-node-shared": "4.0.0-beta.45",
+    "@effect/sql-sqlite-bun": "4.0.0-beta.45",
+    "@effect/vitest": "4.0.0-beta.45",
+    "effect": "4.0.0-beta.45",
+    "vite": "^8.0.0"
   }
 }
