@@ -5,7 +5,8 @@
   appimageTools,
   fetchurl,
   makeWrapper,
-  unzip
+  unzip,
+  codexSupport ? true, codex
 }:
 
 let
@@ -73,7 +74,10 @@ let
 
           wrapProgram "$out/bin/${pname}" \
             --set CHROME_DESKTOP "$desktop_basename" \
-            --prefix XDG_DATA_DIRS : "$out/share"
+            --prefix XDG_DATA_DIRS : "$out/share" \
+            ${lib.optionalString codexSupport ''
+              --prefix PATH : "${lib.makeBinPath [ codex ]}"
+            ''}
         fi
 
         if [ -f ${appimageContents}/.DirIcon ]; then
@@ -122,7 +126,10 @@ let
 
       makeWrapper \
         "$out/Applications/${darwinAppName}/Contents/MacOS/${darwinExecutable}" \
-        "$out/bin/${pname}"
+        "$out/bin/${pname}" \
+        ${lib.optionalString codexSupport ''
+          --prefix PATH : "${lib.makeBinPath [ codex ]}"
+        ''}
 
       runHook postInstall
     '';

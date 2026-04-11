@@ -130,7 +130,6 @@ The updater falls back to `GITHUB_TOKEN` if the secret is absent, but in that mo
 - The desktop package is built from upstream binary artifacts.
 - The CLI package is optional and follows upstream npm publication.
 - GitHub Actions is configured to build the flake on `x86_64-linux`, `x86_64-darwin`, and `aarch64-darwin`.
-- Upstream notes that real usage still depends on external tools such as Codex CLI being installed and configured.
 
 ## Development
 

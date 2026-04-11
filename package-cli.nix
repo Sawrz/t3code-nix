@@ -4,6 +4,7 @@
 , importNpmLock
 , makeWrapper
 , nodejs_22
+, codexSupport ? true, codex
 }:
 
 let
@@ -85,7 +86,10 @@ buildNpmPackage rec {
     cp -r . $out/lib/node_modules/t3
 
     makeWrapper ${nodejs_22}/bin/node $out/bin/t3 \
-      --add-flags "$out/lib/node_modules/t3/dist/index.mjs"
+      --add-flags "$out/lib/node_modules/t3/dist/index.mjs" \
+      ${lib.optionalString codexSupport ''
+        --prefix PATH : "${lib.makeBinPath [ codex ]}"
+      ''}
 
     runHook postInstall
   '';
