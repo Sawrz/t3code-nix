@@ -35,7 +35,23 @@ current_desktop_version() {
 }
 
 latest_release_json() {
-  curl -sSfL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
+  github_api_get "https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
+}
+
+github_api_get() {
+  local url="$1"
+  local -a curl_args=(
+    -sSfL
+    -H "Accept: application/vnd.github+json"
+    -H "X-GitHub-Api-Version: 2022-11-28"
+    -H "User-Agent: t3code-nix-update-script"
+  )
+
+  if [ -n "${GH_UPDATE_TOKEN:-}" ]; then
+    curl_args+=(-H "Authorization: Bearer ${GH_UPDATE_TOKEN}")
+  fi
+
+  curl "${curl_args[@]}" "$url"
 }
 
 release_version_from_json() {
@@ -218,7 +234,7 @@ main() {
   fi
 
   if [ -n "$target_version" ]; then
-    release_json="$(curl -sSfL "https://api.github.com/repos/${GITHUB_REPO}/releases/tags/v${latest}")"
+    release_json="$(github_api_get "https://api.github.com/repos/${GITHUB_REPO}/releases/tags/v${latest}")"
   fi
 
   if [ "$check_only" = true ]; then
